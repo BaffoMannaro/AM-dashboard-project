@@ -3,21 +3,31 @@
   
   Pagina principale per la gestione dei preventivi.
   Permette di:
-  - Creare nuovi preventivi selezionando materiali
+  - Creare nuovi preventivi selezionando materiali con quantità
   - Applicare sconti ai preventivi
   - Inserire dati di trasporto
   - Visualizzare e modificare preventivi esistenti
+  - Visualizzare i materiali associati a ogni preventivo con quantità e subtotali
   
   Componenti principali:
   - Form di creazione preventivo (righe 15-45)
   - Selezione materiali con quantità (righe 47-65)
   - Selezione sconto e trasporto (righe 67-85)
-  - Tabella preventivi esistenti (righe 87-120)
+  - Lista preventivi esistenti con materiali associati (righe 87-165)
   
   Funzioni principali:
-  - handleSubmit(): gestisce creazione/aggiornamento preventivi (riga 180)
-  - calculateTotal(): calcola il totale del preventivo (riga 220)
-  - fetchData(): carica tutti i dati necessari (riga 160)
+  - handleSubmit(): gestisce creazione/aggiornamento preventivi (riga 220)
+  - calculateTotal(): calcola il totale del preventivo (riga 280)
+  - fetchData(): carica tutti i dati necessari inclusi materiali per preventivo (riga 210)
+  - startEdit(): carica preventivo per modifica inclusi materiali associati (riga 360)
+  
+  Endpoint API utilizzati:
+  - GET /api/preventivi/get-all: lista preventivi
+  - GET /api/preventivi/:id/materiali: materiali dettagliati di un preventivo
+  - POST/PUT /api/preventivi/create|update: salvataggio preventivi
+  - GET /api/materiali/get-all: lista materiali disponibili
+  - GET /api/sconti/get-all: lista sconti disponibili
+  - GET /api/trasporto/get-all: lista opzioni trasporto
 -->
 
 <template>
@@ -99,7 +109,10 @@
 
         <!-- Totale e Pulsanti -->
         <div class="border border-gray-300 p-4 rounded-lg bg-blue-50">
-          <h3 class="text-2xl font-bold text-blue-800 mb-4">Totale Preventivo: €{{ calcolaTotale.toFixed(2) }}</h3>
+          <div class="mb-4 space-y-2">
+            <h3 class="text-2xl font-bold text-blue-800">Totale Preventivo: €{{ calcolaTotale.toFixed(2) }}</h3>
+            <p class="text-lg font-semibold text-gray-700">Totale Costo Unitario Materiali: €{{ calcolaTotaleCostoUnitario.toFixed(2) }}</p>
+          </div>
           <div class="flex gap-3 flex-wrap">
             <button type="submit" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
               {{ isEditing ? 'Aggiorna Preventivo' : 'Crea Preventivo' }}
@@ -136,6 +149,26 @@
             <p class="text-sm"><strong class="text-gray-700">Totale:</strong> <span class="text-blue-600 font-semibold">€{{ preventivo.preventivo_costo_totale }}</span></p>
             <p class="text-sm"><strong class="text-gray-700">Sconto:</strong> <span class="text-gray-600">{{ getScontoName(preventivo.preventivo_sconto_id_fk) }}</span></p>
             <p class="text-sm"><strong class="text-gray-700">Trasporto:</strong> <span class="text-gray-600">{{ getTrasportoName(preventivo.preventivo_trasporto_id_fk) }}</span></p>
+            
+            <!-- Sezione Materiali del Preventivo -->
+            <div class="mt-3 pt-3 border-t border-gray-300">
+              <p class="text-sm font-semibold text-gray-700 mb-2">Materiali:</p>
+              <div v-if="preventivo.materiali && preventivo.materiali.length > 0" class="space-y-1">
+                <div v-for="materiale in preventivo.materiali" :key="materiale.preventivo_mat_mat_id" class="text-xs bg-white p-2 rounded border">
+                  <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-800">{{ materiale.materiale_name }}</span>
+                    <span class="text-gray-600">Qtà: {{ materiale.preventivo_mat_quantita }}</span>
+                  </div>
+                  <div class="flex justify-between items-center mt-1">
+                    <span class="text-gray-500">{{ materiale.type_mat_name }}</span>
+                    <span class="font-semibold text-blue-600">€{{ materiale.subtotale.toFixed(2) }}</span>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="text-xs text-gray-500 italic">
+                Nessun materiale associato
+              </div>
+            </div>
           </div>
           <div class="flex gap-2">
             <button @click="startEdit(preventivo)" class="flex-1 px-3 py-2 bg-yellow-500 text-white text-sm font-medium rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-colors">Modifica</button>
@@ -171,7 +204,7 @@ const editablePreventivo = ref({
   preventivo_id: null,
   preventivo_name: '',
   preventivo_descr: '',
-  preventivo_data_creazione: new Date().toLocaleDateString('it-IT').replace(/\//g, '-'), // Data corrente in formato DD-MM-YYYY
+  preventivo_data_creazione: new Date().toISOString().split('T')[0], // Data corrente in formato YYYY-MM-DD per input date
   preventivo_data_evento: '',
   preventivo_costo_totale: 0,
   preventivo_sconto_id_fk: '',
@@ -184,6 +217,7 @@ const materialiSelezionati = ref({});
 /**
  * Carica tutti i dati necessari per la gestione dei preventivi
  * Include: preventivi, materiali, sconti e trasporti
+ * Carica anche i materiali associati a ogni preventivo
  */
 async function fetchData() {
   loading.value = true;
@@ -193,7 +227,27 @@ async function fetchData() {
     // Carica preventivi
     const preventiviResponse = await fetch(`${API_URL}/get-all`);
     if (!preventiviResponse.ok) throw new Error('Errore nel caricamento dei preventivi');
-    preventivi.value = await preventiviResponse.json();
+    const preventiviData = await preventiviResponse.json();
+    
+    // Per ogni preventivo, carica i materiali associati
+    const preventiviConMateriali = await Promise.all(
+      preventiviData.map(async (preventivo) => {
+        try {
+          const materialiResponse = await fetch(`${API_URL}/${preventivo.preventivo_id}/materiali`);
+          if (materialiResponse.ok) {
+            const materialiPreventivo = await materialiResponse.json();
+            return { ...preventivo, materiali: materialiPreventivo };
+          } else {
+            return { ...preventivo, materiali: [] };
+          }
+        } catch (error) {
+          console.warn(`Errore nel caricamento materiali per preventivo ${preventivo.preventivo_id}:`, error);
+          return { ...preventivo, materiali: [] };
+        }
+      })
+    );
+    
+    preventivi.value = preventiviConMateriali;
 
     // Carica materiali
     const materialiResponse = await fetch(`${MATERIALI_API_URL}/get-all`);
@@ -227,17 +281,15 @@ async function handleSubmit() {
     // Calcola il totale finale
     editablePreventivo.value.preventivo_costo_totale = calcolaTotale.value;
 
-    // Converte la data evento dal formato YYYY-MM-DD al formato DD-MM-YYYY
-    let dataEvento = editablePreventivo.value.preventivo_data_evento;
-    if (dataEvento && dataEvento.includes('-') && dataEvento.length === 10) {
-      const [year, month, day] = dataEvento.split('-');
-      dataEvento = `${day}-${month}-${year}`;
-    }
+    // Converte le date dal formato YYYY-MM-DD al formato DD-MM-YYYY
+    const dataEvento = convertDateInputToBackend(editablePreventivo.value.preventivo_data_evento);
+    const dataCreazione = convertDateInputToBackend(editablePreventivo.value.preventivo_data_creazione);
 
     // Prepara i dati del preventivo
     const preventivoData = {
       ...editablePreventivo.value,
       preventivo_data_evento: dataEvento,
+      preventivo_data_creazione: dataCreazione,
       materiali: Object.entries(materialiSelezionati.value)
         .filter(([id, qty]) => qty > 0)
         .map(([id, qty]) => ({ materiale_id: parseInt(id), quantita: parseInt(qty) }))
@@ -306,6 +358,26 @@ const calcolaTotale = computed(() => {
 });
 
 /**
+ * Calcola il totale del costo unitario dei materiali selezionati
+ * Utilizza il campo materiale_costo_unit invece di materiale_prezzo_unit
+ */
+const calcolaTotaleCostoUnitario = computed(() => {
+  let totaleCosto = 0;
+
+  // Calcola il totale dei costi unitari dei materiali
+  Object.entries(materialiSelezionati.value).forEach(([materialeId, quantita]) => {
+    if (quantita > 0) {
+      const materiale = materiali.value.find(m => m.materiale_id == materialeId);
+      if (materiale && materiale.materiale_costo_unit) {
+        totaleCosto += materiale.materiale_costo_unit * quantita;
+      }
+    }
+  });
+
+  return totaleCosto;
+});
+
+/**
  * Funzione per ricalcolare il totale (chiamata dagli input)
  */
 function calculateTotal() {
@@ -313,17 +385,57 @@ function calculateTotal() {
 }
 
 /**
- * Avvia la modifica di un preventivo esistente
+ * Converte una data dal formato ISO (database) al formato YYYY-MM-DD (input date)
  */
-function startEdit(preventivo) {
+function convertISOToDateInput(isoString) {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  return date.toISOString().split('T')[0];
+}
+
+/**
+ * Converte una data dal formato YYYY-MM-DD (input date) al formato DD-MM-YYYY (backend)
+ */
+function convertDateInputToBackend(dateInput) {
+  if (!dateInput) return '';
+  const [year, month, day] = dateInput.split('-');
+  return `${day}-${month}-${year}`;
+}
+
+/**
+ * Avvia la modifica di un preventivo esistente
+ * Carica anche i materiali associati al preventivo
+ */
+async function startEdit(preventivo) {
   isEditing.value = true;
-  editablePreventivo.value = { ...preventivo };
+  editablePreventivo.value = { 
+    ...preventivo,
+    // Converte le date dal formato ISO al formato richiesto dai campi input
+    preventivo_data_evento: convertISOToDateInput(preventivo.preventivo_data_evento),
+    preventivo_data_creazione: convertISOToDateInput(preventivo.preventivo_data_creazione)
+  };
   
   // Reset materiali selezionati
   materialiSelezionati.value = {};
   
-  // TODO: Caricare i materiali associati al preventivo
-  // Questo richiederà una chiamata API aggiuntiva
+  try {
+    // Carica i materiali associati al preventivo
+    const response = await fetch(`${API_URL}/${preventivo.preventivo_id}/materiali`);
+    if (response.ok) {
+      const materialiPreventivo = await response.json();
+      
+      // Popola materialiSelezionati con i materiali del preventivo
+      materialiPreventivo.forEach(materiale => {
+        materialiSelezionati.value[materiale.preventivo_mat_mat_id] = materiale.preventivo_mat_quantita;
+      });
+    } else {
+      console.warn('Errore nel caricamento dei materiali del preventivo:', response.statusText);
+    }
+  } catch (error) {
+    console.error('Errore nel caricamento dei materiali del preventivo:', error);
+    message.value = 'Errore nel caricamento dei materiali del preventivo';
+    messageType.value = 'error';
+  }
 }
 
 /**
@@ -335,7 +447,7 @@ function cancelEdit() {
     preventivo_id: null,
     preventivo_name: '',
     preventivo_descr: '',
-    preventivo_data_creazione: new Date().toLocaleDateString('it-IT').replace(/\//g, '-'), // Data corrente in formato DD-MM-YYYY
+    preventivo_data_creazione: new Date().toISOString().split('T')[0], // Data corrente in formato YYYY-MM-DD per input date
     preventivo_data_evento: '',
     preventivo_costo_totale: 0,
     preventivo_sconto_id_fk: '',

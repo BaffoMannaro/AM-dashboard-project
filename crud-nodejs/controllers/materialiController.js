@@ -15,7 +15,8 @@ exports.getAllMateriali = async function(req, res) {
 
 exports.getMaterialeById = async function(req, res) {
     try {
-        const materiale = await MaterialiModel.getMaterialeById(req.body.id);
+        // Usa req.params.id per compatibilità con GET /:id
+        const materiale = await MaterialiModel.getMaterialeById(req.params.id);
         if (materiale) {
             res.json(materiale);
         } else {
@@ -36,18 +37,30 @@ exports.createMateriale = async function(req, res) {
 };
 exports.updateMateriale = async function(req, res) {
     try {
-        const materiale = await MaterialiModel.updateMateriale(req.body.id, req.body);
+        // Usa req.params.id invece di req.body.id per compatibilità con PUT /:id
+        const materiale = await MaterialiModel.updateMateriale(req.params.id, req.body);
         res.json(materiale);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        if (err.message.includes('non trovato')) {
+            res.status(404).json({ error: err.message });
+        } else {
+            res.status(500).json({ error: err.message });
+        }
     }
 };
 exports.deleteMateriale = async function(req, res) {
     try {
-        const result = await MaterialiModel.deleteMateriale(req.body.id);
+        // Usa req.params.id per compatibilità con DELETE /:id
+        const result = await MaterialiModel.deleteMateriale(req.params.id);
         res.json(result);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        if (err.message.includes('non trovato')) {
+            res.status(404).json({ error: err.message });
+        } else if (err.code === 'ER_ROW_IS_REFERENCED_2' || err.message.includes('foreign key constraint')) {
+            res.status(409).json({ error: 'Impossibile eliminare il materiale: è utilizzato in preventivi o ha dati di usura associati' });
+        } else {
+            res.status(500).json({ error: err.message });
+        }
     }
 };
 

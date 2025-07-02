@@ -10,7 +10,7 @@ class PreventiviService {
                     s.sconto_percentuale,
                     t.trasporto_costo,
                     pm.preventivo_mat_quantita,
-                    m.materiale_prezzo_unitario
+                    m.materiale_prezzo_unit
                 FROM preventivi p
                 LEFT JOIN sconti s ON p.preventivo_sconto_id_fk = s.sconto_id
                 LEFT JOIN trasporto t ON p.preventivo_trasporto_id_fk = t.trasporto_id
@@ -36,8 +36,8 @@ class PreventiviService {
                 const trasportoCosto = results[0].trasporto_costo || 0;
 
                 results.forEach(row => {
-                    if (row.preventivo_mat_quantita && row.materiale_prezzo_unitario) {
-                        totaleMateriali += row.preventivo_mat_quantita * row.materiale_prezzo_unitario;
+                    if (row.preventivo_mat_quantita && row.materiale_prezzo_unit) {
+            totaleMateriali += row.preventivo_mat_quantita * row.materiale_prezzo_unit;
                     }
                 });
 

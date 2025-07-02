@@ -104,7 +104,7 @@ exports.createPreventivo = async function (newPreventivi) {
 exports.createPreventivoMateriali = async function (newPreventiviMateriali) {
   const [result] = await db.query('INSERT INTO preventivi_materiali (preventivo_mat_id, preventivo_mat_mat_id, preventivo_mat_quantita) VALUES (?, ?, ?)', 
     [newPreventiviMateriali.preventivo_mat_id, newPreventiviMateriali.preventivo_mat_mat_id, newPreventiviMateriali.preventivo_mat_quantita]);
-    return { id: newPreventiviMateriali.preventivo_mat_id, ...newPreventiviMateriali };
+    return { id: result.insertId, ...newPreventiviMateriali };
 };
 exports.createSconto = async function (newSconti) {
   const [result] = await db.query('INSERT INTO sconti SET ?', newSconti);
@@ -118,7 +118,10 @@ exports.updateTypeMateriale = async function (id, typeMateriale) {
   return { id: id, ...typeMateriale };
 };
 exports.updateMateriale = async function (id, materiale) {
-  await db.query('UPDATE materiali SET ? WHERE materiale_id = ?', [materiale, id]);
+  const [result] = await db.query('UPDATE materiali SET ? WHERE materiale_id = ?', [materiale, id]);
+  if (result.affectedRows === 0) {
+    throw new Error(`Materiale con ID ${id} non trovato`);
+  }
   return { id: id, ...materiale };
 };
 exports.updateUsuraMateriale = async function (id, usuraMateriale) {
@@ -130,11 +133,14 @@ exports.updateTrasporto = async function (id, trasporto) {
   return { id: id, ...trasporto };
 };
 exports.updatePreventivo = async function (id, preventivo) {
-  await db.query('UPDATE preventivi SET ? WHERE preventivo_id = ?', [preventivo, id]);
-  return { id: id, ...preventivo };
+  const [result] = await db.query('UPDATE preventivi SET ? WHERE preventivo_id = ?', [preventivo, id]);
+  if (result.affectedRows === 0) {
+    throw new Error(`Preventivo con ID ${id} non trovato`);
+  }
+  return { id: id, affectedRows: result.affectedRows, ...preventivo };
 };
 exports.updatePreventivoMateriali = async function (id, preventivoMateriali) {
-  await db.query('UPDATE preventivi_materiali SET ? WHERE preventivo_mat_id = ?', [preventivoMateriali, id]);
+  await db.query('UPDATE preventivi_materiali SET ? WHERE id = ?', [preventivoMateriali, id]);
   return { id: id, ...preventivoMateriali };
 };
 exports.updateSconto = async function (id, sconti) {
@@ -151,8 +157,11 @@ exports.deleteTypeMateriale = async function (id) {
   return { message: 'TypeMateriale eliminato con successo' };
 };
 exports.deleteMateriale = async function (id) {
-  await db.query('DELETE FROM materiali WHERE materiale_id = ?', [id]);
-  return { message: 'Materiale eliminato con successo' };
+  const [result] = await db.query('DELETE FROM materiali WHERE materiale_id = ?', [id]);
+  if (result.affectedRows === 0) {
+    throw new Error(`Materiale con ID ${id} non trovato`);
+  }
+  return { message: 'Materiale eliminato con successo', affectedRows: result.affectedRows };
 };
 exports.deleteUsuraMateriale = async function (id) {
   await db.query('DELETE FROM usura_materiali WHERE usura_mat_id = ?', [id]);
@@ -167,7 +176,7 @@ exports.deletePreventivo = async function (id) {
   return { message: 'Preventivo eliminato con successo', affectedRows: result.affectedRows };
 };
 exports.deletePreventivoMateriali = async function (id) {
-  await db.query('DELETE FROM preventivi_materiali WHERE preventivo_mat_id = ?', [id]);
+  await db.query('DELETE FROM preventivi_materiali WHERE id = ?', [id]);
   return { message: 'PreventivoMateriali eliminato con successo' };
 };
 exports.deletePreventivoMaterialiByPreventivoId = async function (preventivoId) {
@@ -232,16 +241,16 @@ exports.getPreventiviWithTotals = function (filters, callback) {
             COALESCE(s.sconto_percentuale, 0) as sconto_percentuale,
             t.trasporto_costo,
             (
-                SELECT SUM(pm.preventivo_mat_quantita * m.materiale_prezzo_unitario)
+                SELECT SUM(pm.preventivo_mat_quantita * m.materiale_prezzo_unit)
                 FROM preventivi_materiali pm
-                JOIN materiali m ON pm.preventivo_mat_materiale_fk = m.materiale_id
-                WHERE pm.preventivo_mat_preventivo_fk = p.preventivo_id
+                JOIN materiali m ON pm.preventivo_mat_mat_id = m.materiale_id
+                WHERE pm.preventivo_mat_id = p.preventivo_id
             ) as totale_materiali,
             (
-                SELECT SUM(pm.preventivo_mat_quantita * m.materiale_prezzo_unitario * (1 - COALESCE(s.sconto_percentuale, 0)/100)) + COALESCE(t.trasporto_costo, 0)
+                SELECT SUM(pm.preventivo_mat_quantita * m.materiale_prezzo_unit * (1 - COALESCE(s.sconto_percentuale, 0)/100)) + COALESCE(t.trasporto_costo, 0)
                 FROM preventivi_materiali pm
-                JOIN materiali m ON pm.preventivo_mat_materiale_fk = m.materiale_id
-                WHERE pm.preventivo_mat_preventivo_fk = p.preventivo_id
+                JOIN materiali m ON pm.preventivo_mat_mat_id = m.materiale_id
+                WHERE pm.preventivo_mat_id = p.preventivo_id
             ) as totale_finale
         FROM preventivi p
         LEFT JOIN sconti s ON p.preventivo_sconto_id_fk = s.sconto_id
@@ -279,13 +288,13 @@ exports.getPreventivoMaterialiDetailed = function (preventivoId, callback) {
         SELECT 
             pm.*,
             m.materiale_name,
-            m.materiale_prezzo_unitario,
+            m.materiale_prezzo_unit,
             t.type_mat_name,
-            (pm.preventivo_mat_quantita * m.materiale_prezzo_unitario) as subtotale
+            (pm.preventivo_mat_quantita * m.materiale_prezzo_unit) as subtotale
         FROM preventivi_materiali pm
-        JOIN materiali m ON pm.preventivo_mat_materiale_fk = m.materiale_id
+        JOIN materiali m ON pm.preventivo_mat_mat_id = m.materiale_id
         JOIN type_materiali t ON m.materiale_type_fk = t.type_mat_id
-        WHERE pm.preventivo_mat_preventivo_fk = ?
+        WHERE pm.preventivo_mat_id = ?
         ORDER BY t.type_mat_name, m.materiale_name
     `;
 

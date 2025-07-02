@@ -136,12 +136,17 @@ exports.updatePreventivo = async (req, res) => {
 exports.deletePreventivo = async (req, res) => {
     try {
         const preventivoId = req.params.id;
+        console.log(`Tentativo di eliminazione preventivo ID: ${preventivoId}`);
         
         // Prima elimina tutti i materiali associati al preventivo
-        await PreventiviModel.deletePreventivoMaterialiByPreventivoId(preventivoId);
+        console.log('Eliminazione materiali associati...');
+        const deleteMaterialiResult = await PreventiviModel.deletePreventivoMaterialiByPreventivoId(preventivoId);
+        console.log('Risultato eliminazione materiali:', deleteMaterialiResult);
         
         // Poi elimina il preventivo principale
+        console.log('Eliminazione preventivo principale...');
         const result = await PreventiviModel.deletePreventivo(preventivoId);
+        console.log('Risultato eliminazione preventivo:', result);
         
         if (result.affectedRows > 0) {
             res.json({ message: 'Preventivo cancellato con successo' });
@@ -149,8 +154,8 @@ exports.deletePreventivo = async (req, res) => {
             res.status(404).json({ message: 'Preventivo non trovato' });
         }
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Errore durante la cancellazione del preventivo' });
+        console.error('Errore durante l\'eliminazione del preventivo:', error);
+        res.status(500).json({ message: 'Errore durante la cancellazione del preventivo', error: error.message });
     }
 };
 
@@ -182,5 +187,31 @@ exports.applicaSconto = async function(req, res) {
         res.json(risultato);
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+};
+
+/**
+ * Ottiene i materiali dettagliati associati a un preventivo specifico
+ * Include nome materiale, prezzo unitario, tipo e subtotale
+ */
+exports.getPreventivoMateriali = async function(req, res) {
+    try {
+        const preventivoId = req.params.id;
+        
+        // Utilizza una Promise per convertire la callback in async/await
+        const materiali = await new Promise((resolve, reject) => {
+            PreventiviModel.getPreventivoMaterialiDetailed(preventivoId, (err, results) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(results);
+                }
+            });
+        });
+        
+        res.json(materiali);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Errore durante il recupero dei materiali del preventivo' });
     }
 };

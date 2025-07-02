@@ -64,10 +64,12 @@ CREATE TABLE IF NOT EXISTS preventivi (
 );
 
 CREATE TABLE IF NOT EXISTS preventivi_materiali (
+    id SMALLINT AUTO_INCREMENT,
     preventivo_mat_id SMALLINT NOT NULL,
     preventivo_mat_mat_id SMALLINT NOT NULL,
     preventivo_mat_quantita SMALLINT NOT NULL,
-    PRIMARY KEY (preventivo_mat_id),
+    PRIMARY KEY (id),
+    UNIQUE KEY unique_preventivo_materiale (preventivo_mat_id, preventivo_mat_mat_id),
     -- Riferimento alla tabella preventivi
     FOREIGN KEY (preventivo_mat_id) REFERENCES preventivi (preventivo_id),
     -- Riferimento alla tabella materiali

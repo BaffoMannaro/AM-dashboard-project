@@ -1,11 +1,37 @@
+<!--
+  MaterialiManager.vue - Componente per la gestione completa dei materiali
+  
+  Funzionalità principali:
+  - Visualizzazione tabellare di tutti i materiali con informazioni dettagliate (ID, nome, descrizione, prezzo, tipo, percentuale usura)
+  - Creazione di nuovi materiali tramite form con validazione
+  - Modifica di materiali esistenti con pre-popolamento dei campi
+  - Eliminazione di materiali con conferma utente
+  - Filtro per tipo di materiale tramite dropdown
+  - Gestione dell'usura per ogni materiale tramite componente dedicato
+  
+  Struttura dati:
+  - materiali: array reattivo contenente tutti i materiali caricati dal backend
+  - tipiMateriale: array dei tipi di materiale disponibili per il filtro e la selezione
+  - materialiFiltrati: computed property che filtra i materiali in base al tipo selezionato
+  
+  API endpoints utilizzati:
+  - GET /api/materiali/get-all: carica tutti i materiali (riga 143)
+  - GET /api/type_materiali/get-all: carica i tipi di materiale (riga 133)
+  - POST /api/materiali/create: crea nuovo materiale (riga 158)
+  - PUT /api/materiali/update/:id: aggiorna materiale esistente (riga 158)
+  - DELETE /api/materiali/delete/:id: elimina materiale (riga 218)
+  
+  Componenti integrati:
+  - UsuraManager: gestione dell'usura per materiale selezionato (riga 69)
+-->
 <template>
   <div class="border border-gray-300 p-4 rounded-lg mt-4 bg-white">
     <h3 class="text-xl font-semibold text-gray-800 mb-4">Gestione Materiali</h3>
 
     <!-- Form per Creazione e Modifica -->
     <form @submit.prevent="handleSubmit" class="mb-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-      <input v-model="editableMateriale.materiale_name" placeholder="Nome materiale" required class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-      <input v-model="editableMateriale.materiale_descr" placeholder="Descrizione" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+      <input v-model="editableMateriale.materiale_name" placeholder="Nome Materiale" required class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+      <input v-model="editableMateriale.materiale_descr" placeholder="Descrizione" required class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
       <input v-model="editableMateriale.materiale_costo_unit" placeholder="Costo Unitario" type="number" step="0.01" required class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
       <input v-model="editableMateriale.materiale_prezzo_unit" placeholder="Prezzo Unitario" type="number" step="0.01" required class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
       <select v-model="editableMateriale.materiale_type_fk" required class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -22,6 +48,17 @@
 
     <!-- Messaggi di errore o successo -->
     <div v-if="message" :class="`message ${messageType}`" class="p-3 mb-4 rounded-md font-medium">{{ message }}</div>
+
+    <!-- Filtro per tipo di materiale -->
+    <div class="mb-4">
+      <label for="filtroTipo" class="block text-sm font-medium text-gray-700 mb-2">Filtra per tipo:</label>
+      <select id="filtroTipo" v-model="filtroTipoSelezionato" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full md:w-auto">
+        <option value="">Tutti i tipi</option>
+        <option v-for="tipo in tipiMateriale" :key="tipo.type_mat_id" :value="tipo.type_mat_id">
+          {{ tipo.type_mat_name }}
+        </option>
+      </select>
+    </div>
 
     <!-- Tabella per visualizzare i dati -->
     <div class="overflow-x-auto">
@@ -41,7 +78,10 @@
           <tr v-if="loading">
             <td colspan="7" class="border border-gray-300 px-4 py-2 text-center text-gray-500">Caricamento...</td>
           </tr>
-          <tr v-for="item in materiali" :key="item.materiale_id" class="hover:bg-gray-50">
+          <tr v-if="!loading && materialiFiltrati.length === 0">
+            <td colspan="7" class="border border-gray-300 px-4 py-2 text-center text-gray-500">Nessun materiale trovato.</td>
+          </tr>
+          <tr v-for="item in materialiFiltrati" :key="item.materiale_id" class="hover:bg-gray-50">
             <td class="border border-gray-300 px-4 py-2 text-gray-600">{{ item.materiale_id }}</td>
             <td class="border border-gray-300 px-4 py-2 text-gray-600">{{ item.materiale_name }}</td>
             <td class="border border-gray-300 px-4 py-2 text-gray-600">{{ item.materiale_descr }}</td>
@@ -66,7 +106,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import UsuraManager from './UsuraManager.vue'; // Importa il nuovo componente
 
 const API_URL = '/api/materiali';
@@ -77,8 +117,20 @@ const tipiMateriale = ref([]);
 const loading = ref(false);
 const message = ref('');
 const messageType = ref('');
+const filtroTipoSelezionato = ref(''); // Filtro per tipo di materiale
 
 const selectedMaterialeId = ref(null); // ID del materiale selezionato per l'usura
+
+// Computed property per filtrare i materiali per tipo
+const materialiFiltrati = computed(() => {
+  if (!filtroTipoSelezionato.value) {
+    return materiali.value;
+  }
+  
+  return materiali.value.filter(materiale => 
+    materiale.materiale_type_fk === parseInt(filtroTipoSelezionato.value)
+  );
+});
 
 const isEditing = ref(false);
 const editableMateriale = ref({
@@ -87,6 +139,7 @@ const editableMateriale = ref({
   materiale_descr: '',
   materiale_costo_unit: null,
   materiale_prezzo_unit: null,
+  materiale_quantity: 0,
   materiale_type_fk: null
 });
 
@@ -116,7 +169,6 @@ async function fetchData() {
     const response = await fetch(`${API_URL}/get-all`);
     if (!response.ok) throw new Error('Errore nel caricamento dei materiali');
     const data = await response.json();
-    console.log('Dati ricevuti dal backend:', data); // Aggiungi questo log
     materiali.value = data;
   } catch (error) {
     message.value = error.message;
@@ -162,12 +214,14 @@ async function handleSubmit() {
 
 function startEdit(item) {
   isEditing.value = true;
-  editableMateriale.value = { ...item };
+  // Rimuovi campi non necessari per l'aggiornamento e imposta quantità a 0
+  const { max_usura_perc, ...editableItem } = item;
+  editableMateriale.value = { ...editableItem, materiale_quantity: 0 };
 }
 
 function cancelEdit() {
   isEditing.value = false;
-  editableMateriale.value = { materiale_id: null, materiale_name: '', materiale_descr: '', materiale_costo_unit: null, materiale_prezzo_unit: null, materiale_type_fk: null };
+  editableMateriale.value = { materiale_id: null, materiale_name: '', materiale_descr: '', materiale_costo_unit: null, materiale_prezzo_unit: null, materiale_quantity: 0, materiale_type_fk: null };
 }
 
 async function deleteItem(id) {

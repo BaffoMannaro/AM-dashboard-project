@@ -94,11 +94,13 @@ router.get('/preventivi/get-by-id/:id',
 router.post('/preventivi/create',
   validatePreventivo,
   preventiviController.createPreventivo);
-router.post('/preventivi/update/:id',
+router.put('/preventivi/update/:id',
   validatePreventivo,
   preventiviController.updatePreventivo);
 router.delete('/preventivi/delete/:id',
   preventiviController.deletePreventivo);
+router.get('/preventivi/:id/materiali',
+  preventiviController.getPreventivoMateriali);
 
 // Preventivi Materiali Routes
 router.get('/preventivi_materiali/get-all', 
