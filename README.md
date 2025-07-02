@@ -29,3 +29,19 @@ Crea un file `.env.example` nel backend per mostrare le variabili necessarie:
 
 ```bash
 cp crud-nodejs/.env crud-nodejs/.env.example
+```
+
+## Comandi Git utili per il futuro
+- git status - Verifica lo stato dei file
+- git add . - Aggiungi tutti i file modificati
+- git commit -m "messaggio" - Crea un commit
+- git push - Carica le modifiche su GitHub
+- git pull - Scarica le modifiche da GitHub
+- git log --oneline - Visualizza la cronologia dei commit
+
+## Workflow consigliato
+1. Prima di iniziare a lavorare: git pull
+2. Fai le tue modifiche
+3. git add .
+4. git commit -m "Descrizione delle modifiche"
+5. git push
