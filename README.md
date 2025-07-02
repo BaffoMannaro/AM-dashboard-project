@@ -14,3 +14,18 @@ Progetto full-stack con Vue.js frontend e Node.js backend per la gestione di mat
 cd frontend
 npm install
 npm run dev
+```
+
+### Backend
+```bash
+cd crud-nodejs
+npm install
+npm start
+```
+
+## 8. File .env.example per il backend
+
+Crea un file `.env.example` nel backend per mostrare le variabili necessarie:
+
+```bash
+cp crud-nodejs/.env crud-nodejs/.env.example
