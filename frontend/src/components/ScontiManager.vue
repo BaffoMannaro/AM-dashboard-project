@@ -18,10 +18,9 @@
       <table class="w-full border-collapse">
         <thead>
           <tr class="bg-gray-100">
-            <th class="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">ID</th>
-            <th class="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Nome</th>
-            <th class="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Percentuale</th>
-            <th class="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Azioni</th>
+            <th class="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Nome Sconto</th>
+            <th class="border-y border-l border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Percentuale</th>
+            <th class="border-y border-r border-gray-300 px-4 py-2 text-left font-semibold text-gray-700"></th>
           </tr>
         </thead>
         <tbody>
@@ -29,12 +28,11 @@
             <td colspan="4" class="border border-gray-300 px-4 py-2 text-center text-gray-500">Caricamento...</td>
           </tr>
           <tr v-for="item in sconti" :key="item.sconto_id" class="hover:bg-gray-50">
-            <td class="border border-gray-300 px-4 py-2 text-gray-600">{{ item.sconto_id }}</td>
             <td class="border border-gray-300 px-4 py-2 text-gray-600">{{ item.sconto_name }}</td>
-            <td class="border border-gray-300 px-4 py-2 text-gray-600">{{ item.sconto_percentuale }}%</td>
-            <td class="border border-gray-300 px-4 py-2">
+            <td class="border-y border-l border-gray-300 px-4 py-2 text-gray-600 ">{{ item.sconto_percentuale }}%</td>
+            <td class="border-y border-r border-gray-300 px-4 py-2 text-right">
               <button @click="startEdit(item)" class="mr-2 px-3 py-1 bg-yellow-500 text-white text-sm font-medium rounded hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-1 transition-colors">Modifica</button>
-              <button @click="deleteItem(item.sconto_id)" class="px-3 py-1 bg-red-500 text-white text-sm font-medium rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition-colors">Elimina</button>
+              <button @click="deleteItem(item.sconto_id)" class="px-3 py-1 bg-red-500 text-white text-sm font-medium rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition-colors">X</button>
             </td>
           </tr>
         </tbody>

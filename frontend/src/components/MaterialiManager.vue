@@ -26,79 +26,80 @@
 -->
 <template>
   <div class="border border-gray-300 p-4 rounded-lg mt-4 bg-white">
-    <h3 class="text-xl font-semibold text-gray-800 mb-4">Gestione Materiali</h3>
+    <div class="flex justify-between items-center">
+      <h3 class="text-xl font-semibold text-gray-800 mb-4">Gestione Materiali</h3>
+      <button @click="isVisible = !isVisible" class="rotate-90 bg-gray-400 p-2 rounded-3xl hover:bg-gray-600 hover:text-white text-center">></button>
+    </div>
 
-    <!-- Form per Creazione e Modifica -->
-    <form @submit.prevent="handleSubmit" class="mb-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-      <input v-model="editableMateriale.materiale_name" placeholder="Nome Materiale" required class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-      <input v-model="editableMateriale.materiale_descr" placeholder="Descrizione" required class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-      <input v-model="editableMateriale.materiale_costo_unit" placeholder="Costo Unitario" type="number" step="0.01" required class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-      <input v-model="editableMateriale.materiale_prezzo_unit" placeholder="Prezzo Unitario" type="number" step="0.01" required class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-      <select v-model="editableMateriale.materiale_type_fk" required class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-        <option disabled value="">Seleziona un tipo</option>
-        <option v-for="tipo in tipiMateriale" :key="tipo.type_mat_id" :value="tipo.type_mat_id">
-          {{ tipo.type_mat_name }}
-        </option>
-      </select>
-      <div class="flex gap-2 md:col-span-2 lg:col-span-3">
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">{{ isEditing ? 'Aggiorna' : 'Crea' }}</button>
-        <button v-if="isEditing" @click="cancelEdit" type="button" class="px-4 py-2 bg-gray-500 text-white font-medium rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">Annulla</button>
+    <main v-if="isVisible">
+      <!-- Form per Creazione e Modifica -->
+      <form @submit.prevent="handleSubmit" class="mb-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <input v-model="editableMateriale.materiale_name" placeholder="Nome Materiale" required class=" px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        <input v-model="editableMateriale.materiale_descr" placeholder="Descrizione" required class="col-span-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        <input v-model="editableMateriale.materiale_costo_unit" placeholder="Costo Unitario" type="number" step="0.01" required class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        <input v-model="editableMateriale.materiale_prezzo_unit" placeholder="Prezzo Unitario" type="number" step="0.01" required class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        <select v-model="editableMateriale.materiale_type_fk" required class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <option disabled value="" >Seleziona un tipo di materiale</option>
+          <option v-for="tipo in tipiMateriale" :key="tipo.type_mat_id" :value="tipo.type_mat_id">
+            {{ tipo.type_mat_name }}
+          </option>
+        </select>
+        <div class="flex gap-2 md:col-span-2 lg:col-span-3">
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">{{ isEditing ? 'Aggiorna' : 'Crea' }}</button>
+          <button v-if="isEditing" @click="cancelEdit" type="button" class="px-4 py-2 bg-gray-500 text-white font-medium rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">Annulla</button>
+        </div>
+      </form>
+      <!-- Messaggi di errore o successo -->
+      <div v-if="message" :class="`message ${messageType}`" class="p-3 mb-4 rounded-md font-medium">{{ message }}</div>
+      <!-- Filtro per tipo di materiale -->
+      <div class="mb-4 w-full text-right">
+        <label for="filtroTipo" class="text-sm font-medium text-gray-500 mb-2 mr-3">Filtra per tipo:</label>
+        <select id="filtroTipo" v-model="filtroTipoSelezionato" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full md:w-auto">
+          <option value="">Tutti i tipi</option>
+          <option v-for="tipo in tipiMateriale" :key="tipo.type_mat_id" :value="tipo.type_mat_id">
+            {{ tipo.type_mat_name }}
+          </option>
+        </select>
       </div>
-    </form>
-
-    <!-- Messaggi di errore o successo -->
-    <div v-if="message" :class="`message ${messageType}`" class="p-3 mb-4 rounded-md font-medium">{{ message }}</div>
-
-    <!-- Filtro per tipo di materiale -->
-    <div class="mb-4">
-      <label for="filtroTipo" class="block text-sm font-medium text-gray-700 mb-2">Filtra per tipo:</label>
-      <select id="filtroTipo" v-model="filtroTipoSelezionato" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full md:w-auto">
-        <option value="">Tutti i tipi</option>
-        <option v-for="tipo in tipiMateriale" :key="tipo.type_mat_id" :value="tipo.type_mat_id">
-          {{ tipo.type_mat_name }}
-        </option>
-      </select>
-    </div>
-
-    <!-- Tabella per visualizzare i dati -->
-    <div class="overflow-x-auto">
-      <table class="w-full border-collapse">
-        <thead>
-          <tr class="bg-gray-100">
-            <th class="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">ID</th>
-            <th class="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Nome</th>
-            <th class="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Descrizione</th>
-            <th class="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Prezzo</th>
-            <th class="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Tipo</th>
-            <th class="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Usura %</th>
-            <th class="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Azioni</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="loading">
-            <td colspan="7" class="border border-gray-300 px-4 py-2 text-center text-gray-500">Caricamento...</td>
-          </tr>
-          <tr v-if="!loading && materialiFiltrati.length === 0">
-            <td colspan="7" class="border border-gray-300 px-4 py-2 text-center text-gray-500">Nessun materiale trovato.</td>
-          </tr>
-          <tr v-for="item in materialiFiltrati" :key="item.materiale_id" class="hover:bg-gray-50">
-            <td class="border border-gray-300 px-4 py-2 text-gray-600">{{ item.materiale_id }}</td>
-            <td class="border border-gray-300 px-4 py-2 text-gray-600">{{ item.materiale_name }}</td>
-            <td class="border border-gray-300 px-4 py-2 text-gray-600">{{ item.materiale_descr }}</td>
-            <td class="border border-gray-300 px-4 py-2 text-gray-600">€{{ item.materiale_prezzo_unit }}</td>
-            <td class="border border-gray-300 px-4 py-2 text-gray-600">{{ getTipoMaterialeName(item.materiale_type_fk) }}</td>
-            <td class="border border-gray-300 px-4 py-2 text-gray-600">{{ item.max_usura_perc != null ? item.max_usura_perc + '%' : 'N/A' }}</td>
-            <td class="border border-gray-300 px-4 py-2">
-              <div class="flex flex-wrap gap-1">
-                <button @click="startEdit(item)" class="px-2 py-1 bg-yellow-500 text-white text-xs font-medium rounded hover:bg-yellow-600 focus:outline-none focus:ring-1 focus:ring-yellow-500 transition-colors">Modifica</button>
-                <button @click="deleteItem(item.materiale_id)" class="px-2 py-1 bg-red-500 text-white text-xs font-medium rounded hover:bg-red-600 focus:outline-none focus:ring-1 focus:ring-red-500 transition-colors">Elimina</button>
-                <button @click="toggleUsuraManager(item.materiale_id)" class="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded hover:bg-green-600 focus:outline-none focus:ring-1 focus:ring-green-500 transition-colors">Gestisci Usura</button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+      <!-- Tabella per visualizzare i dati -->
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="bg-gray-100">
+              <th class="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Nome</th>
+              <th class="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Descrizione</th>
+              <th class="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Prezzo</th>
+              <th class="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Tipo</th>
+              <th class="border-y border-l border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Usura</th>
+              <th class="border-y border-r border-gray-300 px-4 py-2 text-left font-semibold text-gray-700"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="loading">
+              <td colspan="7" class="border border-gray-300 px-4 py-2 text-center text-gray-500">Caricamento...</td>
+            </tr>
+            <tr v-if="!loading && materialiFiltrati.length === 0">
+              <td colspan="7" class="border border-gray-300 px-4 py-2 text-center text-gray-500">Nessun materiale trovato.</td>
+            </tr>
+            <tr v-for="item in materialiFiltrati" :key="item.materiale_id" class="hover:bg-gray-50">
+              <td class="border border-gray-300 px-4 py-2 text-gray-600">{{ item.materiale_name }}</td>
+              <td class="border border-gray-300 px-4 py-2 text-gray-400">{{ item.materiale_descr }}</td>
+              <td class="border border-gray-300 px-4 py-2 text-gray-600">€{{ item.materiale_prezzo_unit }} <br> <span class="text-s text-gray-400">€{{ item.materiale_costo_unit }}</span></td>
+              <td class="border border-gray-300 px-4 py-2 text-gray-600">{{ getTipoMaterialeName(item.materiale_type_fk) }}</td>
+              <td class="border-y border-l border-gray-300 px-4 py-2 text-gray-600">
+                <button @click="toggleUsuraManager(item.materiale_id)" class="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded hover:bg-green-600 focus:outline-none focus:ring-1 focus:ring-green-500 transition-colors whitespace-pre-line"> {{ item.max_usura_perc != null ? item.max_usura_perc + '% \n Gestisci' : 'Inserisci' }}</button>
+              </td>
+              <td class="border-y border-r border-gray-300 px-4 py-2">
+                <div class="flex flex-wrap gap-1 flex-col">
+                  <button @click="startEdit(item)" class="px-2 py-1 bg-yellow-500 text-white text-xs font-medium rounded hover:bg-yellow-600 focus:outline-none focus:ring-1 focus:ring-yellow-500 transition-colors">Modifica</button>
+                  <button @click="deleteItem(item.materiale_id)" class="px-2 py-1 bg-red-500 text-white text-xs font-medium rounded hover:bg-red-600 focus:outline-none focus:ring-1 focus:ring-red-500 transition-colors">X</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
 
     <!-- Componente per la gestione dell'usura -->
     <UsuraManager v-if="selectedMaterialeId" :materiale-id="selectedMaterialeId" />
@@ -112,6 +113,7 @@ import UsuraManager from './UsuraManager.vue'; // Importa il nuovo componente
 const API_URL = '/api/materiali';
 const TIPI_API_URL = '/api/type_materiali';
 
+const isVisible = ref(false);
 const materiali = ref([]);
 const tipiMateriale = ref([]);
 const loading = ref(false);
