@@ -130,54 +130,63 @@
 
     <!-- Lista Preventivi -->
     <div class="bg-white p-6 rounded-lg shadow-md">
-      <h2 class="text-2xl font-bold text-gray-800 mb-6">Preventivi Esistenti</h2>
-      <div v-if="loading" class="text-center py-8 text-gray-500">
-        Caricamento...
+      <div class="flex justify-between items-center">
+        <h2 class="text-2xl font-bold text-gray-800" :class="{'mb-6': isVisible}">Preventivi Esistenti</h2>
+        <button @click="isVisible = !isVisible" class="flex items-center justify-center w-8 h-8 border border-gray-400 rounded-full hover:bg-gray-600 hover:text-white transition-colors" :class="{'mb-4': isVisible}">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 rotate-180 transform transition-transform" :class="{'rotate-0': !isVisible}" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
       </div>
-      <div v-else-if="!loading && preventivi.length === 0" class="text-center py-8 text-gray-500">
-        Nessun preventivo trovato.
-      </div>
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div v-for="preventivo in preventivi" :key="preventivo.preventivo_id" class="border border-gray-200 rounded-lg p-4 bg-gray-50 hover:shadow-md transition-shadow">
-          <div class="flex justify-between items-start">
-            <h3 class="text-lg font-semibold text-gray-800">{{ preventivo.preventivo_name }}</h3>
-            <span class="text-sm text-gray-500 bg-gray-200 px-2 py-1 rounded">{{ formatDate(preventivo.preventivo_data_evento) }}</span>
-          </div>
-          <div class="text-sm mb-3"><span class="text-gray-600">{{ preventivo.preventivo_descr }}</span></div>
-          <hr>
-          <div class="mt-3 mb-3">
-            <p class="text-sm flex justify-between"><strong class="text-gray-700">Sconto:</strong><span class="text-gray-600">{{ getScontoValue(preventivo.preventivo_sconto_id_fk) }}</span></p>
-            <p class="text-sm flex justify-between"><strong class="text-gray-700">Trasporto:</strong> <span class="text-gray-600">{{ getTrasportoName(preventivo.preventivo_trasporto_id_fk) }}</span></p>
-            <p class="text-sm pt-4 flex justify-between"><strong class="text-gray-700">Totale:</strong> <span class="text-blue-600 font-semibold">€{{ preventivo.preventivo_costo_totale }}</span></p>
-            <p class="text-sm flex justify-between"><strong class="text-gray-700">Costo risorse:</strong> <span class="text-gray-300 font-semibold">€{{ calcolaTotaleCostiMateriali(preventivo).toFixed(2) }}</span></p>
-            <p class="text-sm flex justify-between"><strong class="text-gray-700">Utile totale:</strong> <span class="text-green-700 font-semibold">€{{ calcolaTotaleUtile(preventivo).toFixed(2) }}</span></p>
-            
-            <!-- Sezione Materiali del Preventivo -->
-            <div class="mt-3 pt-3 border-t border-gray-300">
-              <p class="text-sm font-semibold text-gray-700 mb-2">Materiali:</p>
-              <div v-if="preventivo.materiali && preventivo.materiali.length > 0" class="space-y-1">
-                <div v-for="materiale in preventivo.materiali" :key="materiale.preventivo_mat_mat_id" class="text-xs bg-white p-2 rounded border">
-                  <div class="flex justify-between items-center">
-                    <span class="font-medium text-gray-800">{{ materiale.materiale_name }}</span>
-                    <span class="text-gray-600">Qtà: {{ materiale.preventivo_mat_quantita }}</span>
-                  </div>
-                  <div class="flex justify-between items-center mt-1">
-                    <span class="text-gray-500">{{ materiale.type_mat_name }}</span>
-                    <span class="font-semibold text-blue-600">€{{ parseFloat(materiale.subtotale).toFixed(2) }}</span>
+      <main v-if="isVisible">
+        <div v-if="loading" class="text-center py-8 text-gray-500">
+          Caricamento...
+        </div>
+        <div v-else-if="!loading && preventivi.length === 0" class="text-center py-8 text-gray-500">
+          Nessun preventivo trovato.
+        </div>
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div v-for="preventivo in preventivi" :key="preventivo.preventivo_id" class="border border-gray-200 rounded-lg p-4 bg-gray-50 hover:shadow-md transition-shadow">
+            <div class="flex justify-between items-start">
+              <h3 class="text-lg font-semibold text-gray-800">{{ preventivo.preventivo_name }}</h3>
+              <span class="text-sm text-gray-500 bg-gray-200 px-2 py-1 rounded">{{ formatDate(preventivo.preventivo_data_evento) }}</span>
+            </div>
+            <div class="text-sm mb-3"><span class="text-gray-600">{{ preventivo.preventivo_descr }}</span></div>
+            <hr>
+            <div class="mt-3 mb-3">
+              <p class="text-sm flex justify-between"><strong class="text-gray-700">Sconto:</strong><span class="text-gray-600">{{ getScontoValue(preventivo.preventivo_sconto_id_fk) }}</span></p>
+              <p class="text-sm flex justify-between"><strong class="text-gray-700">Trasporto:</strong> <span class="text-gray-600">{{ getTrasportoName(preventivo.preventivo_trasporto_id_fk) }}</span></p>
+              <p class="text-sm pt-4 flex justify-between"><strong class="text-gray-700">Totale:</strong> <span class="text-blue-600 font-semibold">€{{ preventivo.preventivo_costo_totale }}</span></p>
+              <p class="text-sm flex justify-between"><strong class="text-gray-700">Costo risorse:</strong> <span class="text-gray-300 font-semibold">€{{ calcolaTotaleCostiMateriali(preventivo).toFixed(2) }}</span></p>
+              <p class="text-sm flex justify-between"><strong class="text-gray-700">Utile totale:</strong> <span class="text-green-700 font-semibold">€{{ calcolaTotaleUtile(preventivo).toFixed(2) }}</span></p>
+        
+              <!-- Sezione Materiali del Preventivo -->
+              <div class="mt-3 pt-3 border-t border-gray-300">
+                <p class="text-sm font-semibold text-gray-700 mb-2">Materiali:</p>
+                <div v-if="preventivo.materiali && preventivo.materiali.length > 0" class="space-y-1">
+                  <div v-for="materiale in preventivo.materiali" :key="materiale.preventivo_mat_mat_id" class="text-xs bg-white p-2 rounded border">
+                    <div class="flex justify-between items-center">
+                      <span class="font-medium text-gray-800">{{ materiale.materiale_name }}</span>
+                      <span class="text-gray-600">Qtà: {{ materiale.preventivo_mat_quantita }}</span>
+                    </div>
+                    <div class="flex justify-between items-center mt-1">
+                      <span class="text-gray-500">{{ materiale.type_mat_name }}</span>
+                      <span class="font-semibold text-blue-600">€{{ parseFloat(materiale.subtotale).toFixed(2) }}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div v-else class="text-xs text-gray-500 italic">
-                Nessun materiale associato
+                <div v-else class="text-xs text-gray-500 italic">
+                  Nessun materiale associato
+                </div>
               </div>
             </div>
-          </div>
-          <div class="flex gap-2">
-            <button @click="startEdit(preventivo)" class="flex-1 px-3 py-2 bg-yellow-500 text-white text-sm font-medium rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-colors">Modifica</button>
-            <button @click="deletePreventivo(preventivo.preventivo_id)" class="flex-1 px-3 py-2 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors">Elimina</button>
+            <div class="flex gap-2">
+              <button @click="startEdit(preventivo)" class="flex-1 px-3 py-2 bg-yellow-500 text-white text-sm font-medium rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-colors">Modifica</button>
+              <button @click="deletePreventivo(preventivo.preventivo_id)" class="flex-1 px-3 py-2 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors">Elimina</button>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   </div>
 </template>
@@ -192,6 +201,7 @@ const SCONTI_API_URL = '/api/sconti';
 const TRASPORTO_API_URL = '/api/trasporto';
 
 // Reactive data
+const isVisible = ref(false);
 const preventivi = ref([]);
 const materiali = ref([]);
 const sconti = ref([]);
