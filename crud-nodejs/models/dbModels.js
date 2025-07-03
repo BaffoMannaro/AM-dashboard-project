@@ -234,7 +234,7 @@ exports.getMaterialiWithType = async function (filters) {
 };
 
 // Query per il calcolo dei totali dei preventivi
-exports.getPreventiviWithTotals = function (filters, callback) {
+exports.getPreventiviWithTotals = async function (filters) {
   let query = `
         SELECT 
             p.*,
@@ -279,15 +279,17 @@ exports.getPreventiviWithTotals = function (filters, callback) {
     query += ` ORDER BY ${filters.orderBy} ${filters.orderDir || 'ASC'}`;
   }
 
-  db.query(query, values, callback);
+  const [rows] = await db.query(query, values);
+  return rows;
 };
 
 // Query per ottenere i dettagli dei materiali in un preventivo
-exports.getPreventivoMaterialiDetailed = function (preventivoId, callback) {
+exports.getPreventivoMaterialiDetailed = async function (preventivoId) {
   const query = `
         SELECT 
             pm.*,
             m.materiale_name,
+            m.materiale_costo_unit,
             m.materiale_prezzo_unit,
             t.type_mat_name,
             (pm.preventivo_mat_quantita * m.materiale_prezzo_unit) as subtotale
@@ -298,5 +300,6 @@ exports.getPreventivoMaterialiDetailed = function (preventivoId, callback) {
         ORDER BY t.type_mat_name, m.materiale_name
     `;
 
-  db.query(query, [preventivoId], callback);
+  const [rows] = await db.query(query, [preventivoId]);
+  return rows;
 };

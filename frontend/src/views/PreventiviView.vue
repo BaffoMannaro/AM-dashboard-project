@@ -134,21 +134,23 @@
       <div v-if="loading" class="text-center py-8 text-gray-500">
         Caricamento...
       </div>
-      <div v-else-if="preventivi.length === 0" class="text-center py-8 text-gray-500">
+      <div v-else-if="!loading && preventivi.length === 0" class="text-center py-8 text-gray-500">
         Nessun preventivo trovato.
       </div>
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div v-for="preventivo in preventivi" :key="preventivo.preventivo_id" class="border border-gray-200 rounded-lg p-4 bg-gray-50 hover:shadow-md transition-shadow">
-          <div class="flex justify-between items-start mb-3">
+          <div class="flex justify-between items-start">
             <h3 class="text-lg font-semibold text-gray-800">{{ preventivo.preventivo_name }}</h3>
-            <span class="text-sm text-gray-500 bg-gray-200 px-2 py-1 rounded">ID: {{ preventivo.preventivo_id }}</span>
+            <span class="text-sm text-gray-500 bg-gray-200 px-2 py-1 rounded">{{ formatDate(preventivo.preventivo_data_evento) }}</span>
           </div>
-          <div class="space-y-2 mb-4">
-            <p class="text-sm"><strong class="text-gray-700">Descrizione:</strong> <span class="text-gray-600">{{ preventivo.preventivo_descr }}</span></p>
-            <p class="text-sm"><strong class="text-gray-700">Data Evento:</strong> <span class="text-gray-600">{{ formatDate(preventivo.preventivo_data_evento) }}</span></p>
-            <p class="text-sm"><strong class="text-gray-700">Totale:</strong> <span class="text-blue-600 font-semibold">€{{ preventivo.preventivo_costo_totale }}</span></p>
-            <p class="text-sm"><strong class="text-gray-700">Sconto:</strong> <span class="text-gray-600">{{ getScontoName(preventivo.preventivo_sconto_id_fk) }}</span></p>
-            <p class="text-sm"><strong class="text-gray-700">Trasporto:</strong> <span class="text-gray-600">{{ getTrasportoName(preventivo.preventivo_trasporto_id_fk) }}</span></p>
+          <div class="text-sm mb-3"><span class="text-gray-600">{{ preventivo.preventivo_descr }}</span></div>
+          <hr>
+          <div class="mt-3 mb-3">
+            <p class="text-sm flex justify-between"><strong class="text-gray-700">Sconto:</strong><span class="text-gray-600">{{ getScontoValue(preventivo.preventivo_sconto_id_fk) }}</span></p>
+            <p class="text-sm flex justify-between"><strong class="text-gray-700">Trasporto:</strong> <span class="text-gray-600">{{ getTrasportoName(preventivo.preventivo_trasporto_id_fk) }}</span></p>
+            <p class="text-sm pt-4 flex justify-between"><strong class="text-gray-700">Totale:</strong> <span class="text-blue-600 font-semibold">€{{ preventivo.preventivo_costo_totale }}</span></p>
+            <p class="text-sm flex justify-between"><strong class="text-gray-700">Costo risorse:</strong> <span class="text-gray-300 font-semibold">€{{ calcolaTotaleCostiMateriali(preventivo).toFixed(2) }}</span></p>
+            <p class="text-sm flex justify-between"><strong class="text-gray-700">Utile totale:</strong> <span class="text-green-700 font-semibold">€{{ calcolaTotaleUtile(preventivo).toFixed(2) }}</span></p>
             
             <!-- Sezione Materiali del Preventivo -->
             <div class="mt-3 pt-3 border-t border-gray-300">
@@ -161,7 +163,7 @@
                   </div>
                   <div class="flex justify-between items-center mt-1">
                     <span class="text-gray-500">{{ materiale.type_mat_name }}</span>
-                    <span class="font-semibold text-blue-600">€{{ materiale.subtotale.toFixed(2) }}</span>
+                    <span class="font-semibold text-blue-600">€{{ parseFloat(materiale.subtotale).toFixed(2) }}</span>
                   </div>
                 </div>
               </div>
@@ -229,23 +231,25 @@ async function fetchData() {
     if (!preventiviResponse.ok) throw new Error('Errore nel caricamento dei preventivi');
     const preventiviData = await preventiviResponse.json();
     
-    // Per ogni preventivo, carica i materiali associati
-    const preventiviConMateriali = await Promise.all(
-      preventiviData.map(async (preventivo) => {
-        try {
-          const materialiResponse = await fetch(`${API_URL}/${preventivo.preventivo_id}/materiali`);
-          if (materialiResponse.ok) {
-            const materialiPreventivo = await materialiResponse.json();
-            return { ...preventivo, materiali: materialiPreventivo };
-          } else {
-            return { ...preventivo, materiali: [] };
-          }
-        } catch (error) {
-          console.warn(`Errore nel caricamento materiali per preventivo ${preventivo.preventivo_id}:`, error);
-          return { ...preventivo, materiali: [] };
+    // Per ogni preventivo, carica i materiali associati (sequenzialmente invece che con Promise.all)
+    const preventiviConMateriali = [];
+    
+    // Elaborazione sequenziale dei preventivi
+    console.log("Inizio elaborazione sequenziale preventivi");
+    for (const preventivo of preventiviData) {
+      try {
+        const materialiResponse = await fetch(`${API_URL}/${preventivo.preventivo_id}/materiali`);
+        if (materialiResponse.ok) {
+          const materialiPreventivo = await materialiResponse.json();
+          preventiviConMateriali.push({ ...preventivo, materiali: materialiPreventivo });
+        } else {
+          preventiviConMateriali.push({ ...preventivo, materiali: [] });
         }
-      })
-    );
+      } catch (error) {
+        console.warn(`Errore nel caricamento materiali per preventivo ${preventivo.preventivo_id}:`, error);
+        preventiviConMateriali.push({ ...preventivo, materiali: [] });
+      }
+    }
     
     preventivi.value = preventiviConMateriali;
 
@@ -377,6 +381,66 @@ const calcolaTotaleCostoUnitario = computed(() => {
   return totaleCosto;
 });
 
+//calcola il totale dei costi dei materiali presenti in un preventivo
+function calcolaTotaleCostiMateriali(preventivo) {
+  
+  let totaleCosto = 0;
+  
+  // Controlli di sicurezza
+  if (!preventivo || !preventivo.preventivo_id || !preventivo.materiali || !Array.isArray(preventivo.materiali)) {
+    return 0;
+  }
+
+  for (let i = 0; i < preventivo.materiali.length; i++) {
+    const materiale = preventivo.materiali[i];
+    
+    // Controlli per ogni materiale
+    if (!materiale) {
+      continue;
+    }
+    
+    const quantita = parseFloat(materiale.preventivo_mat_quantita) || 0;
+    const costo_unitario = parseFloat(materiale.materiale_costo_unit) || 0;
+        
+    // Calcola solo se entrambi i valori sono validi
+    if (!isNaN(quantita) && !isNaN(costo_unitario)) {
+      const costo = quantita * costo_unitario;
+
+      totaleCosto += costo;
+    }
+  }
+  
+  return parseFloat(totaleCosto) || 0;
+}
+
+function calcolaTotaleUtile(preventivo) {
+  // Controlli di sicurezza
+  if (!preventivo) return 0;
+  
+  const totaleCosto = calcolaTotaleCostiMateriali(preventivo);
+  const totalePrezzo = parseFloat(preventivo.preventivo_costo_totale) || 0;
+
+  const id_trasporto = preventivo.preventivo_trasporto_id_fk;
+  const calcolaCostoTrasporto = (id_trasporto) => {
+    // Controlli di sicurezza
+    if (!id_trasporto || !trasporti.value || !Array.isArray(trasporti.value)) {
+      return 0;
+    }
+    
+    const trasporto = trasporti.value.find(t => t.trasporto_id === id_trasporto);
+    if (!trasporto) {
+      return 0;
+    }
+    
+    return parseFloat(trasporto.trasporto_costo) || 0;
+  };
+
+  const costoTrasporto = calcolaCostoTrasporto(id_trasporto);
+  const utile = totalePrezzo - totaleCosto - costoTrasporto;
+  
+  return parseFloat(utile) || 0;
+}
+
 /**
  * Funzione per ricalcolare il totale (chiamata dagli input)
  */
@@ -481,10 +545,11 @@ async function deletePreventivo(id) {
 /**
  * Utility functions per i nomi
  */
-function getScontoName(id) {
-  if (!id) return 'Nessuno';
+
+function getScontoValue(id) {
+  if (!id) return 'Nessuno'
   const sconto = sconti.value.find(s => s.sconto_id === id);
-  return sconto ? `${sconto.sconto_name} (${sconto.sconto_percentuale}%)` : 'N/A';
+  return sconto ? `- ${sconto.sconto_percentuale}%` : 'N/A';
 }
 
 function getTrasportoName(id) {

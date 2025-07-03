@@ -198,16 +198,8 @@ exports.getPreventivoMateriali = async function(req, res) {
     try {
         const preventivoId = req.params.id;
         
-        // Utilizza una Promise per convertire la callback in async/await
-        const materiali = await new Promise((resolve, reject) => {
-            PreventiviModel.getPreventivoMaterialiDetailed(preventivoId, (err, results) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(results);
-                }
-            });
-        });
+        // Ora usa direttamente await senza Promise wrapper
+        const materiali = await PreventiviModel.getPreventivoMaterialiDetailed(preventivoId);
         
         res.json(materiali);
     } catch (error) {

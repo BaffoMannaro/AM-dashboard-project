@@ -1,7 +1,7 @@
 <template>
-  <div class="data-management">
-    <h1>Pannello di Gestione Dati</h1>
-    <p>Selezione una categoria per iniziare a gestire i dati.</p>
+  <div class="data-management p-8 max-w-7xl mx-auto">
+    <h1 class="text-3xl font-bold text-gray-800 mb-4">Pannello di Gestione Dati</h1>
+    <p class="text-gray-600 mb-8">Selezione una categoria per iniziare a gestire i dati.</p>
 
     <!-- Qui inseriremo la navigazione e tab e i componenti specifici -->
 
