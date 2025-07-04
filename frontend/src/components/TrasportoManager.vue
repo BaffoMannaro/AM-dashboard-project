@@ -28,7 +28,7 @@
     <div class="flex justify-between items-center">
       <h3 class="text-xl font-semibold text-gray-800" :class="{'mb-4': isVisible}">Gestione Trasporti</h3>
       <button @click="isVisible = !isVisible" class="flex items-center justify-center w-8 h-8 border border-gray-400 rounded-full hover:bg-gray-600 hover:text-white transition-colors" :class="{'mb-4 rotate-180': isVisible}">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 rotate-180 transform transition-transform" :class="{'rotate-0': !isVisible}" viewBox="0 0 20 20" fill="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transform transition-transform" :class="{'rotate-0': !isVisible}" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
         </svg>
       </button>
@@ -53,9 +53,9 @@
           <thead>
             <tr class="bg-gray-100">
               <th class="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Nome Trasporto</th>
-              <th class="border-y border-l border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Distanza (km)</th>
-              <th class="border-y border-l border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Costo (€)</th>
-              <th class="border-y border-r border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">Azioni</th>
+              <th class="border-y border-l border-gray-300 px-4 py-2 text-right font-semibold text-gray-700">Distanza</th>
+              <th class="border-y border-l border-gray-300 px-4 py-2 text-right font-semibold text-gray-700">Costo (€)</th>
+              <th class="border-y border-r border-gray-300 px-4 py-2 text-left font-semibold text-gray-700"></th>
             </tr>
           </thead>
           <tbody>
@@ -64,7 +64,7 @@
             </tr>
             <tr v-for="item in trasporti" :key="item.trasporto_id" class="hover:bg-gray-50">
               <td class="border border-gray-300 px-4 py-2 text-gray-600">{{ item.trasporto_name }}</td>
-              <td class="border-y border-l border-gray-300 px-4 py-2 text-gray-600 text-center">{{ item.trasporto_distanza_km }}</td>
+              <td class="border-y border-l border-gray-300 px-4 py-2 text-gray-600 text-right">{{ item.trasporto_distanza_km }} km</td>
               <td class="border-y border-l border-gray-300 px-4 py-2 text-gray-600 text-right">{{ formatCurrency(item.trasporto_costo) }}</td>
               <td class="border-y border-r border-gray-300 px-4 py-2 text-right">
                 <button @click="startEdit(item)" class="mr-2 px-3 py-1 bg-yellow-500 text-white text-sm font-medium rounded hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-1 transition-colors">Modifica</button>

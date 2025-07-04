@@ -3,7 +3,7 @@
     <div class="flex justify-between items-center">
       <h3 class="text-xl font-semibold text-gray-800" :class="{'mb-4': isVisible}">Gestione Tipi Materiale</h3>
       <button @click="isVisible = !isVisible" class="flex items-center justify-center w-8 h-8 border border-gray-400 rounded-full hover:bg-gray-600 hover:text-white transition-colors" :class="{'mb-4 rotate-180': isVisible}">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 rotate-180 transform transition-transform" :class="{'rotate-0': !isVisible}" viewBox="0 0 20 20" fill="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transform transition-transform" :class="{'rotate-0': !isVisible}" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
         </svg>
       </button>
@@ -88,10 +88,8 @@ async function fetchData() {
 // Funzione per gestire l'invio del form (creazione o aggiornamento)
 async function handleSubmit() {
   console.log("Click")
-  const url = isEditing.value ? `${API_URL}/update` : `${API_URL}/create`;
-  const body = isEditing.value 
-    ? { id: editableType.value.type_mat_id, type_mat_name: editableType.value.type_mat_name }
-    : { type_mat_name: editableType.value.type_mat_name };
+  const url = isEditing.value ? `${API_URL}/update/${editableType.value.type_mat_id}` : `${API_URL}/create`;
+  const body = { type_mat_name: editableType.value.type_mat_name };
 
   try {
     console.log("Click", body)
@@ -135,10 +133,9 @@ function cancelEdit() {
 async function deleteItem(id) {
   if (!confirm('Sei sicuro di voler eliminare questo elemento?')) return;
   try {
-    const response = await fetch(`${API_URL}/delete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
+    const response = await fetch(`${API_URL}/delete/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
     });
     if (!response.ok) throw new Error('Errore durante l\'eliminazione');
     message.value = 'Elemento eliminato con successo.';

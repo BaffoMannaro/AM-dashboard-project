@@ -153,8 +153,11 @@ exports.updateSconto = async function (id, sconti) {
 // DELETE
 
 exports.deleteTypeMateriale = async function (id) {
-  await db.query('DELETE FROM type_materiali WHERE type_mat_id = ?', [id]);
-  return { message: 'TypeMateriale eliminato con successo' };
+  const [result] = await db.query('DELETE FROM type_materiali WHERE type_mat_id = ?', [id]);
+  if (result.affectedRows === 0) {
+    throw new Error(`Impossibile eliminare il TypeMateriale con ID ${id} perché è associato a uno o più Materiali`);
+  }
+  return { message: 'TypeMateriale eliminato con successo', affectedRows: result.affectedRows };
 };
 exports.deleteMateriale = async function (id) {
   const [result] = await db.query('DELETE FROM materiali WHERE materiale_id = ?', [id]);

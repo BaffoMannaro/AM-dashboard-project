@@ -39,7 +39,7 @@ router.post('/type_materiali/create',
 router.post('/type_materiali/update/:id',
   validateTypeMateriale,
   typeMaterialiController.updateTypeMateriale);
-router.post('/type_materiali/delete/:id',
+router.delete('/type_materiali/delete/:id',
   typeMaterialiController.deleteTypeMateriale);
 
 // Materiali Routes
