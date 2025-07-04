@@ -126,7 +126,7 @@
       <main v-if="isVisible">
         <div v-if="loading" class="text-center py-8 text-gray-500"> Caricamento... </div>
         <div v-else-if="!loading && preventivi.length === 0" class="text-center py-8 text-gray-500"> Nessun preventivo trovato. </div>
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
           <div v-for="preventivo in preventivi" :key="preventivo.preventivo_id" class="border border-gray-200 rounded-lg p-4 bg-gray-50 hover:shadow-md transition-shadow">
             <div class="flex justify-between items-start">
               <h3 class="text-lg font-semibold text-gray-800">{{ preventivo.preventivo_name }}</h3>
@@ -143,16 +143,39 @@
 
               <!-- Sezione Materiali del Preventivo -->
               <div class="mt-3 pt-3 border-t border-gray-300">
-                <p class="text-sm font-semibold text-gray-700 mb-2">Materiali:</p>
-                <div v-if="preventivo.materiali && preventivo.materiali.length > 0" class="space-y-1">
-                  <div v-for="materiale in preventivo.materiali" :key="materiale.preventivo_mat_mat_id" class="text-xs bg-white p-2 rounded border">
+                <div class="flex gap-1 flex-row items-center mb-2">
+                  <button @click="isVisibleMateriali = !isVisibleMateriali" class="flex items-center justify-center w-8 h-8" :class="{ 'rotate-180': isVisibleMateriali }">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transform transition-transform" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                  <p class="text-sm font-semibold text-gray-700">Materiali:</p>
+                </div>
+                <div v-if="preventivo.materiali && preventivo.materiali.length > 0" class="space-y-2">
+                  <!-- Raggruppa per tipo di materiale -->
+                  <div v-for="gruppo in raggruppaMaterialiPerTipo(preventivo)" :key="gruppo.type_mat_name" class="border border-gray-200 rounded-lg p-2 bg-gray-50">
+                    <!-- Header del gruppo -->
                     <div class="flex justify-between items-center">
-                      <span class="font-medium text-gray-800">{{ materiale.materiale_name }}</span>
-                      <span class="text-gray-600">Qtà: {{ materiale.preventivo_mat_quantita }}</span>
+
+                      <div class="font-semibold text-gray-700 text-sm"> {{ gruppo.type_mat_name }} </div>
+                      <div class="text-xs text-gray-600">
+                        <span class="mr-2">Qtà tot: {{ gruppo.totaleQuantita }}</span>
+                        <span class="font-semibold text-blue-600">€{{ gruppo.totaleSubtotale.toFixed(2) }}</span>
+                      </div>
                     </div>
-                    <div class="flex justify-between items-center mt-1">
-                      <span class="text-gray-500">{{ materiale.type_mat_name }}</span>
-                      <span class="font-semibold text-blue-600">€{{ parseFloat(materiale.subtotale).toFixed(2) }}</span>
+
+                    <!-- Materiali del gruppo -->
+                    <div v-if="isVisibleMateriali" class="space-y-1">
+                      <div v-for="materiale in gruppo.materiali" :key="materiale.preventivo_mat_mat_id" class="text-xs bg-white p-2 rounded border">
+                        <div class="flex justify-between items-center">
+                          <span class="font-medium text-gray-800">{{ materiale.materiale_name }}</span>
+                          <span class="text-gray-600">Qtà: {{ materiale.preventivo_mat_quantita }}</span>
+                        </div>
+                        <div class="flex justify-between items-center mt-1">
+                          <span class="text-gray-400 text-xs">{{ materiale.type_mat_name }}</span>
+                          <span class="font-semibold text-blue-600">€{{ parseFloat(materiale.subtotale).toFixed(2) }}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -183,6 +206,7 @@ const TRASPORTO_API_URL = '/api/trasporto';
 
 // Reactive data
 const isVisible = ref(false);
+const isVisibleMateriali = ref(false);
 const preventivi = ref([]);
 const materiali = ref([]);
 const sconti = ref([]);
@@ -487,6 +511,41 @@ function calcolaAllPreventiviUtile() {
 
 
 
+
+/**
+ * Raggruppa i materiali di un preventivo per type_mat_name
+ * @param {Object} preventivo - il preventivo con i suoi materiali
+ * @returns {Array} Array di gruppi di materiali 
+ */
+
+ function raggruppaMaterialiPerTipo(preventivo) {
+  if (!preventivo || !preventivo.materiali || !Array.isArray(preventivo.materiali)) {
+    return [];
+  }
+
+  //Raggruppa i materiali per type_mat_name
+  const gruppi = preventivo.materiali.reduce((acc, materiale) => {
+    const tipoMateriale = materiale.type_mat_name || 'Tipo non specificato';
+
+    if (!acc[tipoMateriale]) {
+      acc[tipoMateriale] = {
+        type_mat_name: tipoMateriale,
+        materiali: [],
+        totaleQuantita:0,
+        totaleSubtotale:0
+      };
+    }
+
+    acc[tipoMateriale].materiali.push(materiale);
+    acc[tipoMateriale].totaleQuantita += parseInt(materiale.preventivo_mat_quantita) || 0;
+    acc[tipoMateriale].totaleSubtotale += (parseFloat(materiale.subtotale) || 0);
+
+    return acc;
+  }, {});
+
+  //Converte l'oggetto in array per facilitare l'iterazione nel template
+  return Object.values(gruppi);
+ }
 
 
 
