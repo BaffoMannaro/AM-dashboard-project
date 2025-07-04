@@ -9,6 +9,7 @@
       <TypeMaterialiManager />
       <MaterialiManager /> <!-- Aggiungi il nuovo componente qui -->
       <ScontiManager />
+      <TrasportoManager />
     </div>
   </div>
 </template>
@@ -17,6 +18,7 @@
 import TypeMaterialiManager from '../components/TypeMaterialiManager.vue';
 import MaterialiManager from '../components/MaterialiManager.vue'; // Importa il nuovo componente
 import ScontiManager from '../components/ScontiManager.vue';
+import TrasportoManager from '@/components/TrasportoManager.vue';
 </script>
 
 <style scoped>

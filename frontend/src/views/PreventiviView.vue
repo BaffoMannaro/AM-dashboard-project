@@ -38,26 +38,12 @@
     <!-- Form per Creazione e Modifica Preventivo -->
     <div class="bg-gray-50 p-8 rounded-lg mb-8">
       <h2 class="text-2xl font-semibold text-gray-800 mb-6">{{ isEditing ? 'Modifica Preventivo' : 'Nuovo Preventivo' }}</h2>
-      
+
       <form @submit.prevent="handleSubmit" class="flex flex-col gap-6">
         <div class="flex gap-4 flex-wrap">
-          <input 
-            v-model="editablePreventivo.preventivo_name" 
-            placeholder="Nome preventivo" 
-            required 
-            class="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-md text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          <input 
-            v-model="editablePreventivo.preventivo_descr" 
-            placeholder="Descrizione" 
-            class="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-md text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          <input 
-            v-model="editablePreventivo.preventivo_data_evento" 
-            type="date" 
-            required 
-            class="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-md text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+          <input v-model="editablePreventivo.preventivo_name" placeholder="Nome preventivo" required class="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-md text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+          <input v-model="editablePreventivo.preventivo_descr" placeholder="Descrizione" class="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-md text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+          <input v-model="editablePreventivo.preventivo_data_evento" type="date" required class="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-md text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
         </div>
 
         <!-- Selezione Materiali -->
@@ -72,13 +58,7 @@
               </div>
               <div class="flex flex-col items-center gap-2">
                 <label class="text-sm font-medium text-gray-700">Quantità:</label>
-                <input 
-                  type="number" 
-                  min="0" 
-                  v-model="materialiSelezionati[materiale.materiale_id]" 
-                  @input="calculateTotal"
-                  class="w-20 px-2 py-1 border border-gray-300 rounded-md text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <input type="number" min="0" v-model="materialiSelezionati[materiale.materiale_id]" @input="calculateTotal" class="w-20 px-2 py-1 border border-gray-300 rounded-md text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
             </div>
           </div>
@@ -95,7 +75,7 @@
               </option>
             </select>
           </div>
-          
+
           <div class="flex flex-col gap-2 flex-1 min-w-[200px]">
             <label class="font-semibold text-gray-800">Trasporto:</label>
             <select v-model="editablePreventivo.preventivo_trasporto_id_fk" @change="calculateTotal" class="px-3 py-2 border border-gray-300 rounded-md text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -131,20 +111,21 @@
     <!-- Lista Preventivi -->
     <div class="bg-white p-6 rounded-lg shadow-md">
       <div class="flex justify-between items-center">
-        <h2 class="text-2xl font-bold text-gray-800" :class="{'mb-6': isVisible}">Preventivi Esistenti</h2>
-        <button @click="isVisible = !isVisible" class="flex items-center justify-center w-8 h-8 border border-gray-400 rounded-full hover:bg-gray-600 hover:text-white transition-colors" :class="{'mb-4': isVisible}">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 rotate-180 transform transition-transform" :class="{'rotate-0': !isVisible}" viewBox="0 0 20 20" fill="currentColor">
+        <h2 class="text-2xl font-bold text-gray-800">Storico Preventivi</h2>
+        <button @click="isVisible = !isVisible" class="flex items-center justify-center w-8 h-8 border border-gray-400 rounded-full hover:bg-gray-600 hover:text-white transition-colors" :class="{'rotate-180': isVisible}">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transform transition-transform" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
           </svg>
         </button>
       </div>
+      <div class="flex items-center gap-10 mb-6 mt-3">
+        <h4>Totale lordo: <span class="font-bold">€ {{ calcolaAllPreventiviTotale() }} </span></h4>
+        <h4>Totale costo risorse: <span class="text-gray-400">€ {{ calcolaAllPreventiviCosti() }}</span></h4>
+        <h4>Totale utile: <span class="font-bold text-green-700">€ {{ calcolaAllPreventiviUtile() }}</span></h4>
+      </div>
       <main v-if="isVisible">
-        <div v-if="loading" class="text-center py-8 text-gray-500">
-          Caricamento...
-        </div>
-        <div v-else-if="!loading && preventivi.length === 0" class="text-center py-8 text-gray-500">
-          Nessun preventivo trovato.
-        </div>
+        <div v-if="loading" class="text-center py-8 text-gray-500"> Caricamento... </div>
+        <div v-else-if="!loading && preventivi.length === 0" class="text-center py-8 text-gray-500"> Nessun preventivo trovato. </div>
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div v-for="preventivo in preventivi" :key="preventivo.preventivo_id" class="border border-gray-200 rounded-lg p-4 bg-gray-50 hover:shadow-md transition-shadow">
             <div class="flex justify-between items-start">
@@ -159,7 +140,7 @@
               <p class="text-sm pt-4 flex justify-between"><strong class="text-gray-700">Totale:</strong> <span class="text-blue-600 font-semibold">€{{ preventivo.preventivo_costo_totale }}</span></p>
               <p class="text-sm flex justify-between"><strong class="text-gray-700">Costo risorse:</strong> <span class="text-gray-300 font-semibold">€{{ calcolaTotaleCostiMateriali(preventivo).toFixed(2) }}</span></p>
               <p class="text-sm flex justify-between"><strong class="text-gray-700">Utile totale:</strong> <span class="text-green-700 font-semibold">€{{ calcolaTotaleUtile(preventivo).toFixed(2) }}</span></p>
-        
+
               <!-- Sezione Materiali del Preventivo -->
               <div class="mt-3 pt-3 border-t border-gray-300">
                 <p class="text-sm font-semibold text-gray-700 mb-2">Materiali:</p>
@@ -457,6 +438,63 @@ function calcolaTotaleUtile(preventivo) {
 function calculateTotal() {
   // Il totale viene calcolato automaticamente dal computed
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Calcola il totale di tutti i preventivi nello storico
+function calcolaAllPreventiviTotale() {
+  let totale = 0;
+
+  preventivi.value.forEach(preventivo => {
+    totale += parseFloat(preventivo.preventivo_costo_totale) || 0;
+  });
+
+  return totale.toFixed(2);
+}
+
+// Calcola il totale di tutti i costi dei preventivi nello storico
+function calcolaAllPreventiviCosti() {
+  let totale =0;
+
+  preventivi.value.forEach(preventivo => {
+    totale += parseFloat(calcolaTotaleCostiMateriali(preventivo)) || 0;
+  });
+
+  return totale.toFixed(2);
+}
+
+// Calcola il totale di tutti gli utili dei preventivi nello storico
+
+function calcolaAllPreventiviUtile() {
+  let totale = 0;
+
+  preventivi.value.forEach(preventivo => {
+    totale += parseFloat(calcolaTotaleUtile(preventivo)) || 0;
+  });
+
+  return totale.toFixed(2);
+}
+
+
+
+
+
+
+
+
+
+
+
 
 /**
  * Converte una data dal formato ISO (database) al formato YYYY-MM-DD (input date)
